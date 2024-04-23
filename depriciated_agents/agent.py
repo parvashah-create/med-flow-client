@@ -129,12 +129,12 @@ def get_billing_form(query = {}) -> str:
     return physical_exam_form
 
 tools = [
-    Tool.from_function(
-        name="Graph Cypher QA Chain",  
-        description="Provides information about patient and related nodes", 
-        func = cypher_qa,
-        return_direct=False
-    ),
+    # Tool.from_function(
+    #     name="Graph Cypher QA Chain",  
+    #     description="Provides information about patient and related nodes", 
+    #     func = cypher_qa,
+    #     return_direct=False
+    # ),
 
     Tool.from_function(
         name="patient registration form",  
