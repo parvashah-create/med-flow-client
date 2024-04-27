@@ -50,7 +50,7 @@ chat_hist_container = st.container(height=600, border=False)
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "How can I help you ?"},
+        {"role": "assistant", "content": "Hey I'm Dox, how can I help you ?"},
     ]
     for message in st.session_state.messages:
                 write_message(message['role'], message['content'], save=False)
