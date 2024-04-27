@@ -13,14 +13,20 @@ from depriciated_agents.forms.patient_registration import patient_registration_f
 from depriciated_agents.form_handler import FormHandler
 import streamlit as st
 
+from langchain.memory.chat_memory import ChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
+from langchain.pydantic_v1 import BaseModel, Field
 
 
 @tool
 def submit_form(form:str) -> str:
     """submits a form"""
-    
+
     form_dict = json.loads(form.strip())
+
+
+    
     print("form_dict:", form_dict)
     print("form_code:", form_dict["form_code"])
     print("form_data:", form_dict["form_data"])
@@ -72,6 +78,7 @@ def get_physical_exam_form(query = {}) -> str:
         "form_code": 3,
         "form_data":{
                         "appointment_id": "", (required),
+                        "patient_id": "", (required),
                         "findings": "" (required)
                     }
     }
@@ -86,24 +93,71 @@ def get_prescription_form(query = {}) -> str:
     prescription_form = """
     
     Do not change the template
-    Prescription Form Template:
+    Prescription Form JSON Template:
 
     {
         "form_code": 4,
         "form_data":{
-                    "appointment_id": "", (required),
+                    "drugs_check": "", (true/false)(required)
+                    "appointment_id": "", (required)
                     "medications": [{
                             "medication_name": "", (required)
                             "dosage": "", (required)
                             "frequency": "", (required)
                             "duration": "", (required)
-                            "instructions": "", (required)
+                            "instructions": "" (required)
                         }] (add more dicts in the list if necessary)
                     }
     }
 
     """
+    # prescription_form = """
+    
+    # Do not change the template
+    # Prescription Form JSON Template:
+
+    # {
+    #     "form_code": 4,
+    #     "drugs_check": False,
+    #     "form_data":{
+    #                 "appointment_id": "", (required)
+    #                 "medications_info": "", (required)
+    # }
+
+    # """
     return prescription_form
+
+@tool
+def get_medical_history_form(query = {}) -> str:
+    """Gets the medical history form"""
+
+    medical_history_form = """
+    
+    Do not change the template, submit form in this template only
+    Medical History Form Template:
+    {
+    "form_code": 2,
+    "form_data": {
+        "patient_id": "", // (required)
+        "allergies": "",
+        "current_medications": "",
+        "past_medical_history": "",
+        "family_medical_history": "",
+        "surgical_history": "",
+        "lifestyle": {
+        "smoking_status": "",
+        "alcohol_intake": "",
+        "exercise": "",
+        "diet": "",
+        "hydration": "",
+        "caffeine_intake": ""
+        },
+        "recent_health_issues": ""
+    }
+    }
+
+    """
+    return medical_history_form
 
 @tool
 def get_billing_form(query = {}) -> str:
@@ -128,6 +182,7 @@ def get_billing_form(query = {}) -> str:
     """
     return physical_exam_form
 
+
 tools = [
     # Tool.from_function(
     #     name="Graph Cypher QA Chain",  
@@ -140,6 +195,13 @@ tools = [
         name="patient registration form",  
         description="Get the patient registration form template", 
         func = get_patient_registration_form,
+        return_direct=True
+    ),
+
+    Tool.from_function(
+        name="Medical History Form",  
+        description="Get the medical history Form template", 
+        func = get_medical_history_form,
         return_direct=True
     ),
     Tool.from_function(
@@ -168,21 +230,20 @@ tools = [
         func = submit_form,
         return_direct=False
     )
-    
-   
-]
+    ]
 
 
 memory = ConversationBufferWindowMemory(
     memory_key='chat_history',
     k=50,
-    return_messages=True,
+    return_messages=False,
 )
 
+# memory = ChatMessageHistory(session_id="dev-session")
 
-# agent_prompt = hub.pull("hwchase17/react-chat")
+
 agent_prompt = PromptTemplate.from_template("""
-        You are a helpful nurse assistant called for physicians, which helps uses the given tools to help physicians with various ERP related tasks
+        You are a helpful nurse assistant called "Dox" for physicians, which helps uses the given tools to help physicians with various ERP related tasks
         
         When you use asked to fill/get a form, use the tools to get the correct form and progressively fill the form by asking the users questions to fill the form. 
 
@@ -249,8 +310,27 @@ def generate_response(prompt):
                                     verbose=True,
                                     handle_parsing_errors=True
                                     )
+    
 
 
     response = agent_executor.invoke({"input": f"{prompt}"})
+
+
+
+    # agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+
+    # agent_with_chat_history = RunnableWithMessageHistory(
+    #     agent_executor,
+    #     # This is needed because in most real world scenarios, a session id is needed
+    #     # It isn't really used here because we are using a simple in memory ChatMessageHistory
+    #     lambda session_id: memory,
+    #     input_messages_key="input",
+    #     history_messages_key="chat_history",
+    # )
+    # response = agent_with_chat_history.invoke(
+    #                         {"input": f"{prompt}"},
+    #                         config={"configurable": {"session_id": "dev-session"}},
+    #                 )
+
 
     return response["output"]

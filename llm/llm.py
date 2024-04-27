@@ -10,7 +10,7 @@ load_dotenv()
 llm = ChatOpenAI(
     openai_api_key=os.getenv("OPENAI_API_KEY"),
     model=os.getenv("OPENAI_MODEL"),
-    temperature=0.5
+    temperature=0
 
 )
 
